@@ -12,7 +12,7 @@ st.markdown("""
     .stButton>button { background-color: #C93939; color: white; border-radius: 8px; font-weight: 600; }
     .stButton>button:hover { background-color: #a82e2e; color: white; }
     </style>
-""", unsafe_allow_index=True)
+""", unsafe_allow_html=True)
 
 st.title("Erborian Graphic Studio · IL")
 st.subheader("עורך לוקליזציה מהיר ונקי להשקות קמפיינים")
