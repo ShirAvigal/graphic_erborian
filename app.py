@@ -1,6 +1,7 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 import io
+import numpy as np
 import urllib.request
 
 # הגדרת העמוד ומראה האפליקציה של אירבוריאן
@@ -38,11 +39,10 @@ def fix_hebrew_display(text):
         words = line.split(' ')
         fixed_words = []
         for word in words:
-            if any(c.isalpha() for c in word):  # אם יש אותיות (עברית/אנגלית)
+            if any(c.isalpha() for c in word):  # אם יש אותיות
                 fixed_words.append(word[::-1])
             else:
                 fixed_words.append(word)
-        # הפיכת סדר המילים בשורה כדי שהמשפט יקרא מימין לשמאל
         fixed_lines.append(" ".join(fixed_words[::-1]))
     return "\n".join(fixed_lines)
 
@@ -82,22 +82,18 @@ if uploaded_file:
         img_render = img_orig.copy()
         draw = ImageDraw.Draw(img_render)
         
-        # חישוב המיקומים המדויקים בפיקסלים על פי האחוזים שנבחרו
         bx = int((x_pos / 100) * W_orig)
         by = int((y_pos / 100) * H_orig)
         bw = int((width_box / 100) * W_orig)
         bh = int((height_box / 100) * H_orig)
         
-        # דגימת צבע רקע אוטומטי ממרכז הבלוק שבחרת כדי למחוק חלק ונקי
         img_np = np.array(img_orig)
         sample_y = min(H_orig - 1, by + int(bh / 2))
         sample_x = min(W_orig - 1, bx + int(bw / 2))
         bg_color = tuple(img_np[sample_y, sample_x])
         
-        # מחיקת כל האזור האנגלי במכה אחת נקייה
         draw.rectangle([bx, by, bx + bw, by + bh], fill=bg_color)
         
-        # כתיבת הטקסט בעברית בפונט Assistant
         if heb_text.strip():
             try:
                 font = ImageFont.truetype(font_file, font_size) if font_file else ImageFont.load_default()
@@ -105,21 +101,16 @@ if uploaded_file:
                 font = ImageFont.load_default()
             
             text_color = ImageColor.getrgb(text_color_hex)
-            
-            # תיקון והיפוך העברית לפורמט PIL
             ready_text = fix_hebrew_display(heb_text)
             
-            # כתיבת הטקסט שורה אחר שורה עם מרווח מותאם
             current_y = by + 20
             for line in ready_text.split('\n'):
-                # מיקום הטקסט במרכז הבלוק המוחק
                 tx = bx + (bw / 2)
                 draw.text((tx, current_y), line, fill=text_color, font=font, anchor="ma")
                 current_y += font_size + line_spacing
         
         st.image(img_render, use_container_width=True)
         
-        # כפתור הורדה ישיר
         buffer = io.BytesIO()
         img_render.save(buffer, format="PNG")
         st.download_button("↓ הורד גרפיקה מוכנה (PNG ברזולוציה מלאה)", data=buffer.getvalue(), file_name="erborian_clean_il.png", mime="image/png")
