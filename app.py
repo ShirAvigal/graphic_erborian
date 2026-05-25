@@ -42,7 +42,7 @@ def sample_bg_color(img_np, x_pct, y_pct, w_pct, h_pct):
 
 # פונקציה פשוטה להיפוך סדר האותיות בעברית כדי שיוצג נכון בלי שגיאות מערכת
 def reverse_hebrew(text):
-    return text Gold[::-1] if any(c.isalpha() for c in text) else text
+    return text[::-1] if any(c.isalpha() for c in text) else text
 
 # העלאת תמונה
 uploaded_file = st.file_uploader("העלי את תמונת הקמפיין המקורית באנגלית (JPG/PNG)", type=["jpg", "jpeg", "png"])
