@@ -31,7 +31,6 @@ def sample_bg_color(img_np, x_pct, y_pct, w_pct, h_pct):
     w = int((w_pct / 100) * w_img)
     h = int((h_pct / 100) * h_img)
     
-    # דגימת מסגרת קטנה מסביב לטקסט
     ymin, ymax = max(0, y - 6), min(h_img, y + h + 6)
     xmin, xmax = max(0, x - 6), min(w_img, x + w + 6)
     
@@ -41,6 +40,10 @@ def sample_bg_color(img_np, x_pct, y_pct, w_pct, h_pct):
     avg = roi.mean(axis=(0, 1))
     return (int(avg[0]), int(avg[1]), int(avg[2]))
 
+# פונקציה פשוטה להיפוך סדר האותיות בעברית כדי שיוצג נכון בלי שגיאות מערכת
+def reverse_hebrew(text):
+    return text Gold[::-1] if any(c.isalpha() for c in text) else text
+
 # העלאת תמונה
 uploaded_file = st.file_uploader("העלי את תמונת הקמפיין המקורית באנגלית (JPG/PNG)", type=["jpg", "jpeg", "png"])
 
@@ -49,7 +52,6 @@ if uploaded_file:
     img_np = np.array(img_orig)
     W_orig, H_orig = img_orig.size
     
-    # חלוקה לשתי עמודות עבודה
     col_canvas, col_edit = st.columns([3, 2])
     
     with col_edit:
@@ -70,9 +72,7 @@ if uploaded_file:
             sel_id = st.selectbox("בחרי שכבה לעריכה ועיצוב", options=list(options.keys()), format_func=lambda x: options[x], index=list(options.keys()).index(st.session_state.selected_id) if st.session_state.selected_id in options else 0)
             st.session_state.selected_id = sel_id
             
-            # שליפת השכבה הנבחרת
             lay = next(x for x in st.session_state.layers if x["id"] == sel_id)
-            
             lay["heb"] = st.text_area("הקלידי את התרגום בעברית", value=lay["heb"])
             
             st.write("---")
@@ -87,7 +87,7 @@ if uploaded_file:
             st.write("**עיצוב הגופן**")
             cc1, cc2 = st.columns(2)
             with cc1:
-                lay["font_name"] = st.selectbox("גופן מותג", ["Assistant", "Heebo", "Rubik", "Arial"], index=["Assistant", "Heebo", "Rubik", "Arial"].index(lay["font_name"]))
+                lay["font_name"] = st.selectbox("גופן מותג", ["Arial", "Assistant", "Heebo", "Rubik"], index=0)
                 lay["color"] = st.color_picker("צבע טקסט", value=lay["color"])
             with cc2:
                 lay["font_size"] = st.number_input("גודל גופן (px)", min_value=10, max_value=300, value=lay["font_size"])
@@ -100,7 +100,6 @@ if uploaded_file:
         else:
             st.info("לחצי על הכפתור למעלה כדי להוסיף שכבה ראשונה.")
 
-    # תצוגה מקדימה ורינדור
     with col_canvas:
         st.write("### תצוגה מקדימה (Live Preview)")
         
@@ -108,24 +107,22 @@ if uploaded_file:
         draw = ImageDraw.Draw(img_render)
         
         for l in st.session_state.layers:
-            # חישוב פיקסלים אמיתיים לפי האחוזים שנבחרו
             bx = int((l["x"] / 100) * W_orig)
             by = int((l["y"] / 100) * H_orig)
             bw = int((l["w"] / 100) * W_orig)
             bh = int((l["h"] / 100) * H_orig)
             
-            # 1. העלמת האנגלית: צביעה אוטומטית בצבע הרקע שנדגם מהתמונה
+            # 1. העלמת האנגלית בצורה חלקה
             bg_color = sample_bg_color(img_np, l["x"], l["y"], l["w"], l["h"])
             draw.rectangle([bx, by, bx + bw, by + bh], fill=bg_color)
             
-            # 2. כתיבת העברית מעל הרקע הנקי
+            # 2. כתיבת העברית
             if l["heb"].strip():
-                try:
-                    font = ImageFont.truetype(f"{l['font_name']}.ttf", l["font_size"])
-                except:
-                    font = ImageFont.load_default()
-                
+                font = ImageFont.load_default()
                 text_color = ImageColor.getrgb(l["color"])
+                
+                # היפוך הטקסט לתצוגה נכונה בעברית
+                rev_text = reverse_hebrew(l["heb"])
                 
                 if l["align"] == "right":
                     tx = bx + bw - 10
@@ -137,16 +134,13 @@ if uploaded_file:
                     tx = bx + 10
                     anchor = "la"
                 
-                # ציור הטקסט בעברית (תומך ב-RTL)
-                draw.text((tx, by + (bh/4)), l["heb"], fill=text_color, font=font, anchor=anchor, direction="rtl")
+                draw.text((tx, by + (bh/4)), rev_text, fill=text_color, font=font, anchor=anchor)
             
-            # סימון מסגרת אדומה רק על השכבה שנמצאת כרגע בעריכה
             if st.session_state.selected_id == l["id"]:
                 draw.rectangle([bx, by, bx + bw, by + bh], outline="#C93939", width=6)
                 
         st.image(img_render, use_container_width=True)
         
-        # כפתור הורדה
         buffer = io.BytesIO()
         img_render.save(buffer, format="PNG")
         st.download_button("↓ הורד גרפיקה מוכנה (PNG ברזולוציה מלאה)", data=buffer.getvalue(), file_name="erborian_final_il.png", mime="image/png")
