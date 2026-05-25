@@ -56,5 +56,3 @@ if uploaded:
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         st.download_button("הורד תמונה מוכנה", buf.getvalue(), "erborian_il.png")
-
-העלי את הקוד הזה ל-GitHub, ותוכלי להתחיל לעצב את הפוסטים של אירבוריאן בצורה מושלמת!
